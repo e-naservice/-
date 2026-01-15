@@ -1,570 +1,668 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
-    <meta property="og:title" content="加盟店一覧">
-    <meta property="og:description" content="お得な加盟店を検索できるアプリです。">
-    <meta property="og:type" content="website">
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Search, MapPin, Heart, ArrowLeft, ExternalLink, Home, ChevronRight, X, Phone, Clock, Calendar, Globe, Share2, Ticket } from 'lucide-react';
 
-    <title>加盟店一覧</title>
+// --- ダミーデータ生成用ユーティリティ ---
 
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#ff6b6b',   /* Mapアプリに合わせた赤系 */
-                        secondary: '#fbbf24', /* 黄色 */
-                        bgBase: '#fffaf9',    /* Mapアプリに合わせた背景色 */
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <script src="https://unpkg.com/lucide@latest"></script>
+// 画像プール（UnsplashのIDを拡張して重複を防ぐ）
+const IMAGE_POOL = {
+  "カフェ": [
+    "photo-1554118811-1e0d58224f24", "photo-1509042239860-f550ce710b93", "photo-1497935586351-b67a49e012bf",
+    "photo-1521017432531-fbd92d768814", "photo-1511920170033-f8396924c348", "photo-1495474472287-4d71bcdd2085",
+    "photo-1507133750069-775b0f0da7e2", "photo-1461023058943-48dbf94509b4", "photo-1559339352-11d035aa65de",
+    "photo-1554118811-1e76f4a6d5f5", "photo-1501339847302-ac426a4a7cbb", "photo-1453614512568-c4024d13c247",
+    "photo-1498804103079-a6351b050096", "photo-1525610553991-2bede1a236e2", "photo-1514432324607-a09d9b4aefdd",
+    "photo-1504674900247-0877df9cc836", "photo-1514933651103-005eec06c04b", "photo-1466978913421-dad93866169b",
+    "photo-1559925393-8be0ec4767c8", "photo-1442512595367-42736f933867"
+  ],
+  "飲食": [
+    "photo-1569718212165-3a8278d5f624", "photo-1555126634-323283e090fa", "photo-1546069901-ba9599a7e63c",
+    "photo-1559339352-11d035aa65de", "photo-1504674900247-0877df9cc836", "photo-1514326640560-7d063ef2aed5",
+    "photo-1540189549336-e6e99c3679fe", "photo-1484723091739-30a097e8f929", "photo-1476224203421-9ac39bcb3327",
+    "photo-1512058564366-18510be2db19", "photo-1482049016688-2d3e1b311543", "photo-1467003909585-2f8a7270028d",
+    "photo-1532550907401-a500c9a57435", "photo-1565299624946-b28f40a0ae38", "photo-1481931098730-318b6f776db0",
+    "photo-1565958011703-44f9829ba187", "photo-1432139555190-58524dae6a55", "photo-1560684352-8497838a2229",
+    "photo-1529042410759-befb72002f40", "photo-1513639776629-9be61b903114"
+  ],
+  "美容・健康": [
+    "photo-1600334089648-b0d9d3028eb2", "photo-1540497077202-7c8a3999166f", "photo-1570172619644-dfd03ed5d881",
+    "photo-1519415943484-9fa1873496d4", "photo-1534438327276-14e5300c3a48", "photo-1599058945522-28d584b6f0ff",
+    "photo-1571019614242-c5c5dee9f50b", "photo-1518611012118-696072aa579a", "photo-1581091226825-a6a2a5aee158",
+    "photo-1506126613408-eca07ce68773", "photo-1552693673-1bf958298935", "photo-1515377905703-c4788e51af15",
+    "photo-1512290923902-8a9f81dc236c", "photo-1544367563-12123d8965cd", "photo-1554284126-aa88f22d8b74",
+    "photo-1493836512294-502baa1986e2", "photo-1516549655169-df83a0774514", "photo-1507398941214-572c25f4b1dc",
+    "photo-1591343395082-e201b23831b7", "photo-1574680096141-987702e5c0c1"
+  ],
+  "ショッピング": [
+    "photo-1441986300917-64674bd600d8", "photo-1472851294608-415522f96317", "photo-1567401893414-76b7b1e5a7a5",
+    "photo-1483985988355-763728e1935b", "photo-1555529771-835f59fc5efe", "photo-1519389950473-47ba0277781c",
+    "photo-1534452203293-494d7ddbf7e0", "photo-1526178613552-2b45c6c302f0", "photo-1445205170230-053b83016050",
+    "photo-1556905055-8f358a7a47b2", "photo-1469334031218-e382a71b716b", "photo-1550009158-9ebf69173e03",
+    "photo-1571781564998-64c39fba0e6f", "photo-1582234388335-9812499d363b", "photo-1481437156560-3205f6a55735",
+    "photo-1567958451986-2de427a4a0be", "photo-1531694611353-d4758f86fa6d", "photo-1576188973526-0e5d7047b0cf"
+  ],
+  "サービス": [
+    "photo-1517677208171-0bc679980001", "photo-1521791136064-7985c2717883", "photo-1556761175-5973dc0f32e7",
+    "photo-1581091226825-a6a2a5aee158", "photo-1581578731117-104f2a41272c", "photo-1454165804606-c3d57bc86b40",
+    "photo-1455165814004-1126a7199f9b", "photo-1504328345606-18bbc8c9d7d1", "photo-1524234107056-1c1f48f64ab8",
+    "photo-1516321318423-f06f85e504b3", "photo-1504917595217-d4dc5ebe6122", "photo-1486312338219-ce68d2c6f44d",
+    "photo-1581092160562-40aa08e78837", "photo-1581093458791-9f302e6837b7", "photo-1581094794329-1a09d66270e2",
+    "photo-1507208773393-40d9fc9f4981"
+  ]
+};
 
-    <style>
-        body { 
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; 
-            background-color: #fffaf9;
-            color: #5d4037; /* Mapアプリに合わせた文字色 */
-            -webkit-font-smoothing: antialiased;
-        }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+// クーポン画像（汎用）
+const COUPON_IMAGES = [
+  "photo-1607082348824-0a96f2a4b9da", "photo-1544161515-4ab6ce6db874", "photo-1556742049-0cfed4f7a07d",
+  "photo-1628191010210-a59de33e5941", "photo-1559523161-0fc0d8b38a7a", "photo-1606851682705-4a572624da6e"
+];
+
+// 名前生成パーツ（バリエーション追加）
+const NAME_PARTS = {
+  "カフェ": { prefix: ["Cafe", "Coffee", "喫茶", "Lounge", "Bakery", "Espresso", "Tea House", "純喫茶"], body: ["Blue", "Terrace", "Ocean", "Forest", "Mountain", "Sunny", "Dream", "Relax", "Garden", "Street", "Time", "Moments", "Leaf"], suffix: ["", "館", "本店", "ロースタリー", "スタンド", "1985", "北九州"] },
+  "飲食": { prefix: ["レストラン", "居酒屋", "麺屋", "ビストロ", "焼肉", "寿司", "割烹", "炭火焼", "Dining"], body: ["虎の穴", "龍", "さくら", "大和", "イタリアン", "チャイナ", "グルメ", "海鮮", "市場", "湊", "響", "玄界灘"], suffix: ["", "食堂", "飯店", "ダイニング", "酒場", "屋台", "総本店"] },
+  "美容・健康": { prefix: ["Hair", "Salon", "Spa", "Clinic", "Gym", "Yoga", "Body", "Relax"], body: ["Beauty", "Natural", "Life", "Style", "Fit", "Health", "Care", "Refresh", "Glow", "Pure", "Zen", "Flow"], suffix: ["", "サロン", "スタジオ", "整骨院", "クリニック", "Lab"] },
+  "ショッピング": { prefix: ["Select Shop", "Boutique", "雑貨", "スーパー", "Mall", "Gift", "Fashion"], body: ["LUNA", "STAR", "Earth", "Wind", "Daily", "Life", "Style", "Fashon", "Kokura", "Moji", "Port"], suffix: ["", "マート", "商店", "百貨店", "市場"] },
+  "サービス": { prefix: ["Cleaning", "Service", "Rental", "Repair", "School", "Laundry", "Photo"], body: ["Happy", "Quick", "Smart", "Easy", "Safe", "Trust", "Smile", "Clean"], suffix: ["", "本舗", "ステーション", "工房", "館"] }
+};
+
+// 北九州市の各区（すべての住所を北九州市にする）
+const CITIES = [
+  "北九州市小倉北区", "北九州市小倉南区", "北九州市八幡西区", "北九州市八幡東区", 
+  "北九州市門司区", "北九州市若松区", "北九州市戸畑区"
+];
+
+// ランダムデータ生成関数
+const generateMockData = (count = 100) => {
+  const categories = Object.keys(IMAGE_POOL);
+  const data = [];
+  
+  // 各カテゴリーの画像使用状況を追跡して重複を避ける
+  const usedImages: {[key: string]: number} = {};
+  categories.forEach(c => usedImages[c] = 0);
+
+  // カテゴリプールが尽きた場合に備えて、ランダム選択のロジックも用意
+  const getRandomImage = (category: string) => {
+    const pool = IMAGE_POOL[category as keyof typeof IMAGE_POOL];
+    const index = usedImages[category] % pool.length; // 順番に使う
+    usedImages[category]++;
+    return pool[index];
+  };
+
+  for (let i = 0; i < count; i++) {
+    // カテゴリをまんべんなく分散させる
+    const category = categories[i % categories.length];
+    
+    const nameParts = NAME_PARTS[category as keyof typeof NAME_PARTS];
+    const name = `${nameParts.prefix[Math.floor(Math.random() * nameParts.prefix.length)]} ${nameParts.body[Math.floor(Math.random() * nameParts.body.length)]}${nameParts.suffix[Math.floor(Math.random() * nameParts.suffix.length)]}`;
+    
+    // 画像URL生成（重複しないように順番に取得）
+    const imageId = getRandomImage(category);
+    // クエリパラメータにsigを追加して、ブラウザキャッシュによる重複表示も防ぐ
+    const imageUrl = `https://images.unsplash.com/${imageId}?q=80&w=800&auto=format&fit=crop`;
+    
+    // クーポン有無（70%の確率でクーポンあり）
+    const hasCoupon = Math.random() > 0.3;
+    const couponIndex = Math.floor(Math.random() * COUPON_IMAGES.length);
+    const couponImages = hasCoupon ? [`https://images.unsplash.com/${COUPON_IMAGES[couponIndex]}?q=80&w=800&auto=format&fit=crop`] : [];
+    const couponUrls = hasCoupon ? ["#"] : [];
+
+    // 北九州市の住所生成
+    const city = CITIES[Math.floor(Math.random() * CITIES.length)];
+    const block = `${Math.floor(Math.random() * 5) + 1}-${Math.floor(Math.random() * 20) + 1}`;
+    const building = Math.random() > 0.5 ? ` ${["ビル", "マンション", "プラザ"][Math.floor(Math.random() * 3)]}${Math.floor(Math.random() * 5) + 1}F` : "";
+
+    data.push({
+      id: `mock-${i}`,
+      name: name,
+      category: category,
+      address: `${city}${block}${building}`,
+      hours: `${9 + Math.floor(Math.random() * 3)}:00 - ${18 + Math.floor(Math.random() * 5)}:00`,
+      holiday: ["年中無休", "水曜日", "日曜日", "不定休"][Math.floor(Math.random() * 4)],
+      phone: `093-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`, // 北九州市外局番 093
+      website: "https://example.com",
+      sns: "https://instagram.com",
+      note: hasCoupon ? "★会員限定特典あり！詳細をご確認ください。" : "落ち着いた雰囲気で人気のお店です。",
+      images: [imageUrl],
+      couponImages: couponImages,
+      couponUrls: couponUrls,
+      lat: 33.8 + (Math.random() * 0.1), // 北九州付近の緯度
+      lng: 130.8 + (Math.random() * 0.1) // 北九州付近の経度
+    });
+  }
+  
+  // リストをシャッフルして、同じカテゴリが連続しないようにする
+  return data.sort(() => Math.random() - 0.5);
+};
+
+// --- テーマ定義 ---
+
+const CATEGORY_THEMES = {
+  "すべて": { main: "#c5a178", text: "#fff", dark: "#a1825e", badgeText: "#fff", sub: "#fff7e4" },
+  "カフェ": { main: "#8d6e63", text: "#fff", dark: "#5d4037", badgeText: "#fff", sub: "#efebe9" },
+  "飲食": { main: "#fb923c", text: "#fff", dark: "#c2410c", badgeText: "#fff", sub: "#fff7ed" },
+  "美容・健康": { main: "#22d3ee", text: "#fff", dark: "#0e7490", badgeText: "#fff", sub: "#ecfeff" },
+  "ショッピング": { main: "#ec4899", text: "#fff", dark: "#be185d", badgeText: "#fff", sub: "#fdf2f8" },
+  "サービス": { main: "#10b981", text: "#fff", dark: "#047857", badgeText: "#fff", sub: "#ecfdf5" },
+  "その他": { main: "#94a3b8", text: "#fff", dark: "#475569", badgeText: "#fff", sub: "#f8fafc" },
+  "default": { main: "#c5a178", text: "#fff", dark: "#b08d66", badgeText: "#fff", sub: "#fff7e4" }
+};
+
+const getTheme = (category: string) => {
+  return CATEGORY_THEMES[category as keyof typeof CATEGORY_THEMES] || CATEGORY_THEMES["default"];
+};
+
+// --- コンポーネント群 ---
+
+const ImageCarousel = ({ images, shopName, theme }: { images: string[], shopName: string, theme: any }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollLeft = e.currentTarget.scrollLeft;
+    const width = e.currentTarget.offsetWidth;
+    const index = Math.round(scrollLeft / width);
+    setCurrentIndex(index);
+  };
+
+  if (!images || images.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center flex-col transition-colors duration-500" style={{ backgroundColor: theme.main, color: 'rgba(255,255,255,0.7)' }}>
+        <MapPin size={40} className="mb-2 opacity-50" />
+        <span className="text-sm font-bold opacity-70">No Image</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full group">
+      <div 
+        className="flex overflow-x-auto snap-x snap-mandatory h-full w-full scrollbar-hide" 
+        onScroll={handleScroll}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {images.map((src, i) => (
+          <img 
+            key={i} 
+            src={src} 
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display='none';
+            }}
+            alt={`${shopName} ${i+1}`} 
+            className="w-full h-full object-cover flex-shrink-0 snap-center bg-gray-200" 
+          />
+        ))}
+      </div>
+      
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-10 pointer-events-none">
+          {images.map((_, i) => (
+            <div 
+              key={i} 
+              className={`w-2 h-2 rounded-full shadow-sm transition-all duration-300 ${i === currentIndex ? 'scale-125' : 'bg-white/70'}`}
+              style={{ backgroundColor: i === currentIndex ? theme.dark : undefined }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// メインアプリケーションコンポーネント
+const App = () => {
+  const [shops, setShops] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<'list' | 'detail' | 'favorites'>('list');
+  const [selectedShop, setSelectedShop] = useState<any>(null);
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("すべて");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  const categoryTabsRef = useRef<HTMLDivElement>(null);
+
+  // タッチ操作用
+  const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{x: number, y: number} | null>(null);
+  const minSwipeDistance = 50;
+
+  const currentTheme = useMemo(() => getTheme(selectedCategory), [selectedCategory]);
+
+  const categories = useMemo(() => {
+    return ["すべて", "カフェ", "飲食", "美容・健康", "ショッピング", "サービス"];
+  }, []);
+
+  // 初期データロード
+  useEffect(() => {
+    // APIコールの代わりにダミーデータを即時生成
+    const timer = setTimeout(() => {
+      // 画像プールの合計枚数に合わせてデータを生成（約90件）して重複を回避
+      const data = generateMockData(90); 
+      setShops(data);
+      setLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // カテゴリタブの自動スクロール
+  useEffect(() => {
+    if (categoryTabsRef.current) {
+      const activeTab = categoryTabsRef.current.querySelector(`[data-category="${selectedCategory}"]`);
+      if (activeTab) {
+        activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [selectedCategory]);
+
+  // スワイプ操作
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+  };
+  
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+  };
+  
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
+
+    if (isHorizontalSwipe) {
+      const isLeftSwipe = distanceX > minSwipeDistance;
+      const isRightSwipe = distanceX < -minSwipeDistance;
+
+      if (isLeftSwipe || isRightSwipe) {
+        const currentIndex = categories.indexOf(selectedCategory);
+        let newIndex = currentIndex;
+        if (isLeftSwipe && currentIndex < categories.length - 1) newIndex = currentIndex + 1;
+        else if (isRightSwipe && currentIndex > 0) newIndex = currentIndex - 1;
+
+        if (newIndex !== currentIndex) setSelectedCategory(categories[newIndex]);
+      }
+    }
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  const toggleFavorite = (shopId: string) => {
+    setFavorites(prev => 
+      prev.includes(shopId) ? prev.filter(id => id !== shopId) : [...prev, shopId]
+    );
+  };
+
+  const filteredShops = useMemo(() => {
+    let data = shops;
+    if (view === 'favorites') {
+      data = data.filter(s => favorites.includes(s.id));
+    }
+    if (selectedCategory !== "すべて") {
+      data = data.filter(s => s.category === selectedCategory);
+    }
+    if (searchTerm) {
+      const lowerTerm = searchTerm.toLowerCase();
+      data = data.filter(s => 
+        (s.name && s.name.toLowerCase().includes(lowerTerm)) ||
+        (s.address && s.address.toLowerCase().includes(lowerTerm)) ||
+        (s.note && s.note.toLowerCase().includes(lowerTerm))
+      );
+    }
+    return data;
+  }, [shops, view, selectedCategory, searchTerm, favorites]);
+
+  const handleShopClick = (shop: any) => {
+    setSelectedShop(shop);
+    setView('detail');
+    window.scrollTo(0, 0);
+  };
+
+  const goHome = () => {
+    setSelectedShop(null);
+    setView('list');
+    setSearchTerm("");
+    setSelectedCategory("すべて");
+    setIsSearchOpen(false);
+  };
+
+  const goFavorites = () => {
+    setSelectedShop(null);
+    setView('favorites');
+    window.scrollTo(0, 0);
+    setIsSearchOpen(false);
+  };
+
+  // --- 店舗詳細ビュー ---
+  const ShopDetailView = ({ shop }: { shop: any }) => {
+    if (!shop) return null;
+    const isFav = favorites.includes(shop.id);
+    const theme = getTheme(shop.category);
+    
+    return (
+      <div className="pb-40 animate-fade-in relative bg-white min-h-screen w-full md:max-w-md mx-auto shadow-2xl overflow-hidden">
         
-        .coupon-ticket {
-            background: #ffffff;
-            position: relative;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
-            clip-path: polygon(
-                0% 0%, 100% 0%, 100% 100%, 
-                95% 95%, 90% 100%, 85% 95%, 80% 100%, 75% 95%, 70% 100%, 65% 95%, 60% 100%, 55% 95%, 50% 100%, 
-                45% 95%, 40% 100%, 35% 95%, 30% 100%, 25% 95%, 20% 100%, 15% 95%, 10% 100%, 5% 95%, 
-                0% 100%
-            );
-            padding-bottom: 20px;
-        }
-    </style>
-</head>
-<body class="bgBase">
-    <div id="root"></div>
+        {/* ナビゲーションボタン */}
+        <button 
+          onClick={() => setView(view === 'favorites' ? 'favorites' : 'list')}
+          className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-lg transition border border-slate-100 text-gray-700 hover:bg-white"
+        >
+          <ArrowLeft size={24} />
+        </button>
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        {/* ヒーローイメージ */}
+        <div className="relative h-72 md:h-80 w-full">
+          <ImageCarousel images={shop.images} shopName={shop.name} theme={theme} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 pointer-events-none"></div>
 
-        // ★★★ ここにMapアプリと同じGASのURLを入れてください ★★★
-        const API_URL = "https://script.google.com/macros/s/AKfycbxlqdGFsGAteMhVTA63JdGK3L_ySKgBP3SsOTLBvRoRnsisttyE3c5WJpkEcps51YCtqw/exec"; 
-        
-        // Googleドライブ画像のURL変換関数（Mapアプリと同じロジック）
-        const formatImageUrl = (url) => {
-            if(!url) return null;
-            let clean = url.trim();
-            const idMatch = clean.match(/\/d\/(.+?)\/|id=(.+?)(&|$)/);
-            if(clean.includes("drive.google") && idMatch) {
-                const id = idMatch[1] || idMatch[2];
-                return `https://lh3.googleusercontent.com/d/${id}`;
-            }
-            return clean;
-        };
+          <div className="absolute bottom-0 left-0 right-0 p-5 text-white pointer-events-none">
+            <span 
+              className="text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block shadow-md border border-white/20"
+              style={{ backgroundColor: theme.main, color: theme.badgeText }}
+            >
+              {shop.category}
+            </span>
+            <h1 className="text-2xl font-bold leading-tight mb-1 drop-shadow-md">{shop.name}</h1>
+            <div className="flex items-center text-sm text-white/95">
+              <MapPin size={14} className="mr-1" />
+              {shop.address}
+            </div>
+          </div>
 
-        // アイコンコンポーネント
-        const Icon = ({ name, size = 20, className = "" }) => {
-            const icons = {
-                search: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
-                mapPin: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>,
-                heart: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
-                heartFill: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="#ff6b6b" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
-                arrowLeft: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>,
-                externalLink: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>,
-                home: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>,
-                chevronRight: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 18 15 12 9 6"></polyline></svg>,
-                x: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-            };
-            return icons[name] || null;
-        };
+          <button 
+            onClick={(e) => { e.stopPropagation(); toggleFavorite(shop.id); }} 
+            className="absolute bottom-5 right-5 p-3 rounded-full bg-white shadow-lg transform transition active:scale-90 z-20 hover:scale-105"
+          >
+            <Heart size={24} fill={isFav ? "#c5a178" : "none"} color={isFav ? "#c5a178" : "#cbd5e1"} />
+          </button>
+        </div>
 
-        // カルーセルコンポーネント
-        const ImageCarousel = ({ images, shopName }) => {
-            const [currentIndex, setCurrentIndex] = useState(0);
-            
-            const handleScroll = (e) => {
-                const scrollLeft = e.target.scrollLeft;
-                const width = e.target.offsetWidth;
-                const index = Math.round(scrollLeft / width);
-                setCurrentIndex(index);
-            };
+        {/* コンテンツ */}
+        <div className="px-6 py-8 space-y-8 bg-white rounded-t-3xl -mt-4 relative z-10">
+          
+          {/* 店舗情報カード */}
+          <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+            <h2 className="text-lg font-bold mb-4 flex items-center text-gray-800">
+              <span className="w-1.5 h-6 rounded-full mr-3" style={{ backgroundColor: theme.main }}></span>
+              店舗情報
+            </h2>
+            <div className="space-y-4 text-sm text-gray-600">
+              <div className="flex items-start border-b border-gray-50 pb-3">
+                <Clock className="w-5 h-5 mr-3 text-gray-400 flex-shrink-0" />
+                <span className="flex-1">{shop.hours}</span>
+              </div>
+              <div className="flex items-start border-b border-gray-50 pb-3">
+                <Calendar className="w-5 h-5 mr-3 text-gray-400 flex-shrink-0" />
+                <span className="flex-1">{shop.holiday}</span>
+              </div>
+              <div className="flex items-center border-b border-gray-50 pb-3">
+                <Phone className="w-5 h-5 mr-3 text-gray-400 flex-shrink-0" />
+                <a href={`tel:${shop.phone}`} className="font-bold hover:underline" style={{ color: theme.dark }}>{shop.phone}</a>
+              </div>
+              {shop.website && (
+                <div className="flex items-center border-b border-gray-50 pb-3">
+                  <Globe className="w-5 h-5 mr-3 text-gray-400 flex-shrink-0" />
+                  <a href={shop.website} target="_blank" rel="noopener noreferrer" className="flex items-center hover:opacity-70" style={{ color: theme.dark }}>
+                    公式サイト <ExternalLink size={12} className="ml-1" />
+                  </a>
+                </div>
+              )}
+              {shop.note && (
+                 <div className="flex items-start pt-1 bg-gray-50 p-3 rounded-lg">
+                   <span className="leading-relaxed text-gray-700">{shop.note}</span>
+                 </div>
+              )}
+            </div>
+          </div>
 
-            if (!images || images.length === 0) {
+          {/* クーポンエリア */}
+          {shop.couponImages && shop.couponImages.length > 0 && (
+            <div className="space-y-4">
+              {shop.couponImages.map((img: string, idx: number) => {
+                const url = shop.couponUrls[idx];
                 return (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
-                        No Image
-                    </div>
-                );
-            }
-
-            return (
-                <div className="relative w-full h-full group">
-                    <div 
-                        className="flex overflow-x-auto snap-x snap-mandatory h-full w-full hide-scrollbar" 
-                        onScroll={handleScroll}
-                    >
-                        {images.map((src, i) => (
-                            <img 
-                                key={i} 
-                                src={src} 
-                                alt={`${shopName} ${i+1}`} 
-                                className="w-full h-full object-cover flex-shrink-0 snap-center" 
-                            />
-                        ))}
-                    </div>
+                  <div key={idx} className="relative overflow-hidden text-center p-6 rounded-2xl shadow-md border-2" 
+                       style={{ borderColor: theme.main, background: `linear-gradient(135deg, #fff 0%, ${theme.main}11 100%)` }}>
+                    {/* クーポン風のギザギザ装飾 */}
+                    <div className="absolute top-0 left-0 w-full h-2 bg-repeat-x" style={{ backgroundImage: `linear-gradient(45deg, ${theme.main} 25%, transparent 25%), linear-gradient(-45deg, ${theme.main} 25%, transparent 25%)`, backgroundSize: '10px 10px' }}></div>
                     
-                    {images.length > 1 && (
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-10 pointer-events-none">
-                            {images.map((_, i) => (
-                                <div 
-                                    key={i} 
-                                    className={`w-2 h-2 rounded-full shadow-sm transition-all duration-300 ${
-                                        i === currentIndex 
-                                        ? 'bg-primary scale-125' 
-                                        : 'bg-white/70'
-                                    }`} 
-                                />
-                            ))}
-                        </div>
+                    <h3 className="text-lg font-bold mb-3 flex items-center justify-center text-gray-800">
+                      <Ticket className="w-6 h-6 mr-2 text-yellow-500" /> 特別クーポン
+                    </h3>
+                    <div className="rounded-xl overflow-hidden border border-gray-200 mb-4 bg-white shadow-inner">
+                      <img src={img} alt="Coupon" className="w-full h-auto object-cover" onError={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                    </div>
+                    {url && url !== "#" ? (
+                      <a href={url} target="_blank" className="block w-full text-white font-bold py-3.5 rounded-full shadow-lg transform transition active:scale-95 hover:opacity-90"
+                         style={{ backgroundColor: theme.dark }}>
+                        このクーポンを使う
+                      </a>
+                    ) : (
+                      <button className="w-full text-white font-bold py-3.5 rounded-full shadow-lg transform transition active:scale-95 hover:opacity-90 flex items-center justify-center gap-2"
+                        style={{ backgroundColor: theme.dark }}
+                        onClick={() => alert("スタッフにこの画面を提示してください")}
+                      >
+                         <Phone size={18} /> 店頭で提示して利用
+                      </button>
                     )}
+                    <p className="text-xs text-gray-400 mt-2">※ 有効期限：2025年12月末日まで</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 固定フッターアクション */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 z-50 md:max-w-md md:mx-auto flex gap-3">
+          <button className="flex-1 bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl flex items-center justify-center transition hover:bg-gray-200">
+             <Share2 size={18} className="mr-2" /> 共有
+          </button>
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}`} target="_blank" rel="noopener noreferrer" 
+             className="flex-[2] text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition hover:opacity-90 active:scale-95"
+             style={{ backgroundColor: theme.dark }}>
+            <MapPin size={18} className="mr-2" />
+            ルート案内
+          </a>
+        </div>
+      </div>
+    );
+  };
+
+  // --- ローディング画面 ---
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#fff7e4] flex-col">
+        <div className="animate-spin text-[#c5a178] mb-4">
+           <svg className="w-10 h-10" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <p className="text-[#5d4037] font-bold text-sm tracking-widest animate-pulse">読み込み中...</p>
+      </div>
+    );
+  }
+
+  // --- メインレンダリング (詳細ビュー) ---
+  if (view === 'detail') {
+    return <ShopDetailView shop={selectedShop} />;
+  }
+
+  // --- メインレンダリング (リストビュー) ---
+  return (
+    <div className="pb-24 w-full md:max-w-md mx-auto min-h-screen relative bg-[#fff7e4] shadow-2xl font-sans overflow-hidden">
+      
+      {/* ヘッダーエリア */}
+      <div className="sticky top-0 z-30 shadow-md text-white rounded-b-[2rem] mb-4 transition-colors duration-500 ease-in-out"
+           style={{ backgroundColor: currentTheme.main }}>
+        <div className="px-5 pt-8 pb-3">
+          <div className="flex justify-between items-center py-2">
+            <div>
+              <h1 className="text-xl font-bold tracking-wide flex items-center" style={{ color: currentTheme.text }}>
+                {view === 'favorites' ? 'お気に入り' : '加盟店一覧'}
+                {view !== 'favorites' && (
+                  <span className="ml-3 text-xs px-2 py-0.5 rounded-full font-bold border border-white/20"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: currentTheme.text }}>
+                    {filteredShops.length}件
+                  </span>
+                )}
+              </h1>
+            </div>
+            {view !== 'favorites' && (
+              <button 
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="p-2 rounded-full transition-colors duration-200 hover:bg-white/20"
+                style={{ backgroundColor: isSearchOpen ? 'rgba(255,255,255,0.2)' : 'transparent', color: currentTheme.text }}
+              >
+                {isSearchOpen ? <X size={22} /> : <Search size={22} />}
+              </button>
+            )}
+          </div>
+          
+          {/* 検索バー */}
+          {view !== 'favorites' && (
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isSearchOpen ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  placeholder="店名・住所・キーワード..."
+                  className="w-full bg-white/95 border-none rounded-full py-2.5 pl-10 pr-4 text-sm focus:ring-2 shadow-inner placeholder-gray-400 outline-none text-gray-700"
+                  style={{ '--tw-ring-color': currentTheme.dark } as any}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <div className="absolute left-3.5 top-2.5 text-gray-400">
+                  <Search size={18} />
                 </div>
-            );
-        };
+              </div>
+            </div>
+          )}
+        </div>
 
-        const App = () => {
-            const [shops, setShops] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [view, setView] = useState('list');
-            const [selectedShop, setSelectedShop] = useState(null);
-            
-            // 検索状態
-            const [searchTerm, setSearchTerm] = useState("");
-            const [selectedCategory, setSelectedCategory] = useState("すべて");
-            const [isSearchOpen, setIsSearchOpen] = useState(false); // 検索バーの開閉状態
-            
-            const [favorites, setFavorites] = useState([]);
-
-            const categories = useMemo(() => {
-                const cats = new Set(shops.map(s => s.category).filter(Boolean));
-                // 「その他」があれば最後に持ってくるロジックはMap同様お好みで
-                return ["すべて", ...Array.from(cats)];
-            }, [shops]);
-
-            useEffect(() => {
-                const loadData = async () => {
-                    setLoading(true);
-                    const savedFavs = JSON.parse(localStorage.getItem('myAppFavorites') || '[]');
-                    setFavorites(savedFavs);
-
-                    if (API_URL) {
-                        try {
-                            const res = await fetch(API_URL);
-                            const data = await res.json();
-                            
-                            // ★Mapアプリのデータ構造(キー名)を、このアプリ用に変換して取り込む
-                            const formattedData = data.map(item => {
-                                // 画像の整形
-                                const imgStr = item.image || "";
-                                const imgArray = imgStr.split(',').filter(s => s.trim()).map(formatImageUrl);
-                                
-                                // クーポン画像の整形
-                                const couponStr = item.coupon_imgs || "";
-                                const couponArray = couponStr.split(',').filter(s => s.trim()).map(formatImageUrl);
-                                const couponUrlArray = (item.coupon_urls || "").split(',');
-
-                                return {
-                                    id: item.id,
-                                    name: item.name,
-                                    category: item.category,
-                                    address: item.address,
-                                    hours: item.hours,
-                                    holiday: item.closed, // Mapアプリのclosedをholidayとして利用
-                                    phone: item.tel,      // Mapアプリのtelをphoneとして利用
-                                    website: item.url,    // Mapアプリのurlをwebsiteとして利用
-                                    sns: item.sns,
-                                    note: item.description, // Mapアプリのdescriptionをnoteとして利用
-                                    images: imgArray,       // 画像配列
-                                    couponImages: couponArray, // クーポン画像配列
-                                    couponUrls: couponUrlArray,
-                                    lat: item.lat,
-                                    lng: item.lng
-                                };
-                            });
-
-                            setShops(formattedData);
-                            setLoading(false);
-
-                        } catch (err) {
-                            console.error("Data load error:", err);
-                            // エラー時は空データなどをセット
-                            setShops([]);
-                            setLoading(false);
-                        }
-                    } else {
-                        // URL未設定時はデモモードにはせずローディング終了
-                        setLoading(false);
-                    }
-                };
-                loadData();
-            }, []);
-
-            const toggleFavorite = (shopId) => {
-                let newFavs;
-                if (favorites.includes(shopId)) {
-                    newFavs = favorites.filter(id => id !== shopId);
-                } else {
-                    newFavs = [...favorites, shopId];
-                }
-                setFavorites(newFavs);
-                localStorage.setItem('myAppFavorites', JSON.stringify(newFavs));
-            };
-
-            const filteredShops = useMemo(() => {
-                let data = shops;
-                if (view === 'favorites') {
-                    data = data.filter(s => favorites.includes(s.id));
-                }
-                if (selectedCategory !== "すべて") {
-                    data = data.filter(s => s.category === selectedCategory);
-                }
-                if (searchTerm) {
-                    const lowerTerm = searchTerm.toLowerCase();
-                    data = data.filter(s => 
-                        (s.name && s.name.toLowerCase().includes(lowerTerm)) ||
-                        (s.address && s.address.toLowerCase().includes(lowerTerm)) ||
-                        (s.note && s.note.toLowerCase().includes(lowerTerm))
-                    );
-                }
-                return data;
-            }, [shops, view, selectedCategory, searchTerm, favorites]);
-
-            const handleShopClick = (shop) => {
-                setSelectedShop(shop);
-                setView('detail');
-                window.scrollTo(0, 0);
-            };
-
-            const goHome = () => {
-                setSelectedShop(null);
-                setView('list');
-                setSearchTerm("");
-                setSelectedCategory("すべて");
-                setIsSearchOpen(false);
-            };
-
-            const goFavorites = () => {
-                setSelectedShop(null);
-                setView('favorites');
-                window.scrollTo(0, 0);
-                setIsSearchOpen(false);
-            };
-
-            // --- コンポーネント: 店舗カード ---
-            const ShopCard = ({ shop }) => {
-                const firstImage = (shop.images && shop.images.length > 0) ? shop.images[0] : null;
-
+        {/* カテゴリータブ */}
+        {view !== 'favorites' && (
+          <div className="px-4 pb-4">
+            <div className="flex space-x-2 overflow-x-auto scrollbar-hide py-1" ref={categoryTabsRef} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {categories.map(cat => {
+                const isActive = selectedCategory === cat;
+                const theme = getTheme(cat);
                 return (
-                    <div 
-                        onClick={() => handleShopClick(shop)} 
-                        className="bg-white rounded-xl shadow-sm overflow-hidden border border-red-50 cursor-pointer transform transition duration-200 hover:scale-[1.02] hover:shadow-lg flex flex-col h-full"
-                    >
-                        <div className="h-32 w-full bg-slate-100 relative">
-                            {firstImage ? (
-                                <img src={firstImage} alt={shop.name} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">No Image</div>
-                            )}
-                            <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
-                                <Icon name={favorites.includes(shop.id) ? "heartFill" : "heart"} size={16} className={favorites.includes(shop.id) ? "text-primary" : "text-slate-400"} />
-                            </div>
-                            <div className="absolute bottom-2 left-2 bg-primary/90 text-white text-[10px] px-2 py-1 rounded-full font-bold">
-                                {shop.category}
-                            </div>
-                        </div>
-                        <div className="p-3 flex-grow flex flex-col justify-between">
-                            <div>
-                                <h3 className="font-bold text-slate-700 text-sm mb-1 leading-snug">{shop.name}</h3>
-                                <div className="flex items-center text-slate-400 text-xs mb-2">
-                                    <Icon name="mapPin" size={10} className="mr-1 flex-shrink-0" />
-                                    <span className="truncate">{shop.address}</span>
-                                </div>
-                            </div>
-                            <div className="mt-2 text-right">
-                                <button className="text-xs text-primary border border-primary bg-red-50 px-3 py-1.5 rounded-full font-bold shadow-sm inline-flex items-center hover:bg-primary hover:text-white transition-colors">
-                                    詳細 <Icon name="chevronRight" size={12} className="ml-1" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                  <button
+                    key={cat}
+                    data-category={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-bold transition-all transform active:scale-95 flex-shrink-0 border`}
+                    style={{
+                      backgroundColor: isActive ? theme.badgeText : 'rgba(255,255,255,0.1)',
+                      color: isActive ? theme.main : 'rgba(255,255,255,0.9)',
+                      borderColor: isActive ? 'transparent' : 'rgba(255,255,255,0.3)',
+                      boxShadow: isActive ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                  >
+                    {cat}
+                  </button>
                 );
-            };
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
-            // --- コンポーネント: 店舗詳細 ---
-            const ShopDetailView = ({ shop }) => {
-                if (!shop) return null;
-                const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${shop.lat || ""},${shop.lng || ""}`;
-                
+      {/* リスト表示エリア */}
+      <div 
+        className="px-4 min-h-[60vh]" 
+        onTouchStart={onTouchStart} 
+        onTouchMove={onTouchMove} 
+        onTouchEnd={onTouchEnd}
+        key={selectedCategory} 
+      >
+        <div className="grid grid-cols-2 gap-4 pb-8 animate-fade-in">
+          {filteredShops.length > 0 ? (
+            filteredShops.map(shop => {
+                const theme = getTheme(shop.category);
+                const isFav = favorites.includes(shop.id);
                 return (
-                    <div className="pb-24 animate-fade-in relative bg-white min-h-screen">
-                        
-                        {/* 戻るボタン（固定） */}
-                        <button 
-                            onClick={() => setView(view === 'favorites' ? 'favorites' : 'list')}
-                            className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-lg text-slate-600 hover:text-primary transition border border-slate-100"
-                        >
-                            <Icon name="arrowLeft" />
-                        </button>
-
-                        <div className="relative h-72 w-full">
-                            <ImageCarousel images={shop.images} shopName={shop.name} />
-                            
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 pointer-events-none"></div>
-
-                            <div className="absolute bottom-0 left-0 right-0 p-5 text-white pointer-events-none">
-                                <span className="text-xs bg-primary text-white font-bold px-2 py-1 rounded mb-2 inline-block shadow-sm">
-                                    {shop.category}
-                                </span>
-                                <h1 className="text-2xl font-bold leading-tight mb-1">{shop.name}</h1>
-                                <div className="flex items-center text-sm text-slate-200">
-                                    <Icon name="mapPin" size={14} className="mr-1" />
-                                    {shop.address}
-                                </div>
-                            </div>
-
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); toggleFavorite(shop.id); }} 
-                                className="absolute bottom-5 right-5 p-3 rounded-full bg-white shadow-lg transform transition active:scale-90 z-20"
-                            >
-                                <Icon name={favorites.includes(shop.id) ? "heartFill" : "heart"} size={24} className={favorites.includes(shop.id) ? "text-primary" : "text-slate-400"} />
-                            </button>
+                  <div 
+                    key={shop.id} 
+                    onClick={() => handleShopClick(shop)} 
+                    className="bg-white rounded-2xl shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 group border border-transparent hover:border-gray-100"
+                  >
+                    <div className="h-32 w-full relative overflow-hidden" style={{ backgroundColor: theme.sub }}>
+                      {shop.images[0] ? (
+                        <img src={shop.images[0]} alt={shop.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <MapPin size={24} />
                         </div>
+                      )}
+                      
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(shop.id); }}
+                        className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm hover:bg-white transition-all active:scale-90 z-10"
+                      >
+                         <Heart size={16} fill={isFav ? "#c5a178" : "none"} color={isFav ? "#c5a178" : "#cbd5e1"} />
+                      </button>
 
-                        <div className="px-4 py-6 space-y-6">
-                            
-                            <div className="bg-white rounded-2xl shadow-sm p-5 border border-slate-100">
-                                <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center">
-                                    <span className="w-1.5 h-6 bg-primary rounded-full mr-2"></span>
-                                    店舗情報
-                                </h2>
-                                <div className="space-y-3 text-sm text-slate-600">
-                                    <div className="flex border-b border-slate-50 pb-2">
-                                        <span className="w-24 text-slate-400 font-medium flex-shrink-0">営業時間</span>
-                                        <span className="">{shop.hours}</span>
-                                    </div>
-                                    <div className="flex border-b border-slate-50 pb-2">
-                                        <span className="w-24 text-slate-400 font-medium flex-shrink-0">定休日</span>
-                                        <span className="">{shop.holiday}</span>
-                                    </div>
-                                    <div className="flex border-b border-slate-50 pb-2">
-                                        <span className="w-24 text-slate-400 font-medium flex-shrink-0">電話番号</span>
-                                        <a href={`tel:${shop.phone}`} className="text-primary font-medium">{shop.phone}</a>
-                                    </div>
-                                    {shop.website && (
-                                        <div className="flex border-b border-slate-50 pb-2">
-                                            <span className="w-24 text-slate-400 font-medium flex-shrink-0">公式サイト</span>
-                                            <a href={shop.website} target="_blank" rel="noopener noreferrer" className="text-primary flex items-center">
-                                                Webサイトへ <Icon name="externalLink" size={12} className="ml-1" />
-                                            </a>
-                                        </div>
-                                    )}
-                                    {shop.sns && (
-                                        <div className="flex border-b border-slate-50 pb-2">
-                                            <span className="w-24 text-slate-400 font-medium flex-shrink-0">SNS</span>
-                                            <a href={shop.sns} target="_blank" rel="noopener noreferrer" className="text-primary flex items-center">
-                                                SNSを見る <Icon name="externalLink" size={12} className="ml-1" />
-                                            </a>
-                                        </div>
-                                    )}
-                                    {shop.note && (
-                                        <div className="flex pt-1">
-                                            <span className="w-24 text-slate-400 font-medium flex-shrink-0">備考</span>
-                                            <span className="leading-relaxed">{shop.note}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* クーポン表示エリア */}
-                            {shop.couponImages && shop.couponImages.length > 0 ? (
-                                <div className="space-y-4">
-                                    {shop.couponImages.map((img, idx) => {
-                                        const url = shop.couponUrls[idx];
-                                        return (
-                                            <div key={idx} className="coupon-ticket text-center p-6 rounded-xl shadow-sm border border-red-100 bg-gradient-to-br from-white to-red-50">
-                                                <h3 className="text-lg font-bold text-primary mb-3 flex items-center justify-center">
-                                                    <span className="text-2xl mr-2">🎁</span> 特別クーポン {shop.couponImages.length > 1 ? `(${idx+1})` : ""}
-                                                </h3>
-                                                <div className="rounded-lg overflow-hidden border border-slate-200 mb-4 bg-white">
-                                                    <img src={img} alt="Coupon" className="w-full h-auto" />
-                                                </div>
-                                                {url ? (
-                                                    <a href={url} target="_blank" className="block w-full bg-primary hover:bg-red-500 text-white font-bold py-4 rounded-full shadow-lg transform transition active:scale-95 text-lg">
-                                                        このクーポンを使う
-                                                    </a>
-                                                ) : (
-                                                    <button 
-                                                        disabled
-                                                        className="w-full bg-gray-300 text-white font-bold py-4 rounded-full cursor-not-allowed"
-                                                    >
-                                                        クーポン詳細なし
-                                                    </button>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : null}
-
-                        </div>
-
-                        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 z-50 safe-area-bottom">
-                            <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="block w-full bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg text-center flex items-center justify-center hover:bg-red-600 transition">
-                                <Icon name="mapPin" className="mr-2" />
-                                ここへ行く（ルート案内）
-                            </a>
-                        </div>
+                      <div className="absolute bottom-2 left-2 text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm backdrop-blur-sm border border-white/20"
+                           style={{ backgroundColor: theme.main, color: theme.badgeText }}>
+                        {shop.category}
+                      </div>
                     </div>
+                    <div className="p-3">
+                      <h3 className="font-bold text-sm mb-1 leading-snug text-gray-700 line-clamp-1 group-hover:text-gray-900">{shop.name}</h3>
+                      <div className="flex items-center text-gray-400 text-xs mb-2">
+                        <MapPin size={10} className="mr-1 flex-shrink-0" />
+                        <span className="truncate">{shop.address.split(' ')[0]}</span>
+                      </div>
+                      <div className="flex justify-end">
+                         <span className="text-[10px] border px-2 py-0.5 rounded-full font-medium inline-flex items-center transition-colors"
+                               style={{ borderColor: theme.main, color: theme.dark, backgroundColor: theme.sub }}>
+                           詳細 <ChevronRight size={10} className="ml-0.5" />
+                         </span>
+                      </div>
+                    </div>
+                  </div>
                 );
-            };
+            })
+          ) : (
+            <div className="col-span-2 text-center py-20 text-gray-400">
+              <div className="mb-4 flex justify-center opacity-30">
+                 <Search size={64} />
+              </div>
+              <p className="text-lg font-bold opacity-70 mb-2">お店が見つかりません...</p>
+              {view !== 'favorites' && (
+                <button onClick={() => {setSearchTerm(""); setSelectedCategory("すべて");}} className="text-sm underline hover:text-gray-600 transition-colors">
+                  条件をクリアして全て表示
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
-            // メインレンダリング
-            if (loading) {
-                return (
-                    <div className="flex items-center justify-center h-screen bg-bgBase">
-                        <div className="animate-spin text-primary">
-                             <svg className="w-8 h-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                );
-            }
+      {/* ボトムナビゲーション */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-100 flex px-8 py-2 z-40 gap-12 items-center">
+        <button 
+          onClick={goHome} 
+          className={`flex flex-col items-center justify-center transition duration-300 transform p-2 ${view === 'list' ? 'scale-110' : 'hover:opacity-70'}`}
+          style={{ color: view === 'list' ? currentTheme.main : '#8d7b75' }}
+        >
+          <Home size={24} fill={view === 'list' ? "currentColor" : "none"} />
+          <span className="text-[9px] mt-0.5 font-bold">ホーム</span>
+        </button>
+        
+        <button 
+          onClick={goFavorites} 
+          className={`flex flex-col items-center justify-center transition duration-300 transform p-2 ${view === 'favorites' ? 'scale-110' : 'hover:opacity-70'}`}
+          style={{ color: view === 'favorites' ? '#ec4899' : '#8d7b75' }}
+        >
+          <Heart size={24} fill={view === 'favorites' ? "currentColor" : "none"} />
+           <span className="text-[9px] mt-0.5 font-bold">保存済み</span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
-            if (view === 'detail') {
-                return <ShopDetailView shop={selectedShop} />;
-            }
-
-            return (
-                <div className="pb-24 max-w-md mx-auto min-h-screen relative bg-bgBase">
-                    {/* ヘッダー */}
-                    <div className="sticky top-0 z-30 bg-primary shadow-md px-5 py-3 text-white rounded-b-3xl mb-4 transition-all duration-300">
-                        <div className="flex justify-between items-center py-1">
-                            <div>
-                                <h1 className="text-xl font-bold tracking-wide flex items-center">
-                                    {view === 'favorites' ? 'お気に入り' : '加盟店一覧'}
-                                    {view !== 'favorites' && (
-                                        <span className="ml-3 text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-normal">
-                                            {filteredShops.length}件
-                                        </span>
-                                    )}
-                                </h1>
-                            </div>
-                            {/* 検索トグルボタン (お気に入り画面以外で表示) */}
-                            {view !== 'favorites' && (
-                                <button 
-                                    onClick={() => setIsSearchOpen(!isSearchOpen)}
-                                    className={`p-2 rounded-full transition-colors duration-200 ${isSearchOpen ? 'bg-white text-primary' : 'hover:bg-white/20 text-white'}`}
-                                >
-                                    <Icon name={isSearchOpen ? "x" : "search"} size={22} />
-                                </button>
-                            )}
-                        </div>
-                        
-                        {/* 検索エリア (トグル式) */}
-                        {view !== 'favorites' && (
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isSearchOpen ? 'max-h-40 opacity-100 mt-3 pb-2' : 'max-h-0 opacity-0'}`}>
-                                <div className="space-y-3">
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="店名・住所・キーワードで検索..."
-                                            className="w-full bg-white text-slate-700 border-none rounded-full py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-secondary/50 shadow-inner placeholder-slate-400"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
-                                        <div className="absolute left-3.5 top-2.5 text-slate-400">
-                                            <Icon name="search" size={18} />
-                                        </div>
-                                    </div>
-                                    <div className="flex space-x-2 overflow-x-auto hide-scrollbar pb-1">
-                                        {categories.map(cat => (
-                                            <button
-                                                key={cat}
-                                                onClick={() => setSelectedCategory(cat)}
-                                                className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all transform active:scale-95 ${
-                                                    selectedCategory === cat 
-                                                    ? 'bg-secondary text-white shadow-md' 
-                                                    : 'bg-white/20 text-white border border-white/30 hover:bg-white/30'
-                                                }`}
-                                            >
-                                                {cat}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* コンテンツリスト */}
-                    <div className="px-4 grid grid-cols-2 gap-4">
-                        {filteredShops.length > 0 ? (
-                            filteredShops.map(shop => (
-                                <ShopCard key={shop.id} shop={shop} />
-                            ))
-                        ) : (
-                            <div className="col-span-2 text-center py-20 text-slate-400">
-                                <div className="mb-4 flex justify-center">
-                                    <img src="https://specified-plum-9oe3zlcs1h.edgeone.app/いーなキャラ双眼鏡.jpg" alt="いーなキャラ" className="w-32 h-auto opacity-90 mx-auto" />
-                                </div>
-                                <p className="text-lg font-bold text-primary">いーなと思ったお店を見つけよー！</p>
-                                {view !== 'favorites' && (
-                                    <button onClick={() => {setSearchTerm(""); setSelectedCategory("すべて");}} className="mt-4 text-primary text-sm underline">
-                                        検索条件をクリア
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* ボトムナビゲーション */}
-                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur rounded-full shadow-xl border border-slate-100 flex px-8 py-2.5 z-40 space-x-12">
-                        <button 
-                            onClick={goHome} 
-                            className={`flex flex-col items-center justify-center transition duration-300 ${view === 'list' ? 'text-primary scale-110' : 'text-slate-300 hover:text-slate-400'}`}
-                        >
-                            <Icon name="home" size={26} />
-                        </button>
-                        
-                        <button 
-                            onClick={goFavorites} 
-                            className={`flex flex-col items-center justify-center transition duration-300 ${view === 'favorites' ? 'text-primary scale-110' : 'text-slate-300 hover:text-slate-400'}`}
-                        >
-                            <Icon name={view === 'favorites' ? "heartFill" : "heart"} size={26} />
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+export default App;
