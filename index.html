@@ -3,135 +3,85 @@ import { Search, MapPin, Heart, ArrowLeft, ExternalLink, Home, ChevronRight, X, 
 
 // --- ダミーデータ生成用ユーティリティ ---
 
-// 画像プール（UnsplashのIDを拡張して重複を防ぐ）
+// 画像プール（Unsplashの実在する画像IDを使用）
 const IMAGE_POOL = {
   "カフェ": [
     "photo-1554118811-1e0d58224f24", "photo-1509042239860-f550ce710b93", "photo-1497935586351-b67a49e012bf",
-    "photo-1521017432531-fbd92d768814", "photo-1511920170033-f8396924c348", "photo-1495474472287-4d71bcdd2085",
-    "photo-1507133750069-775b0f0da7e2", "photo-1461023058943-48dbf94509b4", "photo-1559339352-11d035aa65de",
-    "photo-1554118811-1e76f4a6d5f5", "photo-1501339847302-ac426a4a7cbb", "photo-1453614512568-c4024d13c247",
-    "photo-1498804103079-a6351b050096", "photo-1525610553991-2bede1a236e2", "photo-1514432324607-a09d9b4aefdd",
-    "photo-1504674900247-0877df9cc836", "photo-1514933651103-005eec06c04b", "photo-1466978913421-dad93866169b",
-    "photo-1559925393-8be0ec4767c8", "photo-1442512595367-42736f933867"
+    "photo-1521017432531-fbd92d768814", "photo-1511920170033-f8396924c348", "photo-1495474472287-4d71bcdd2085"
   ],
   "飲食": [
     "photo-1569718212165-3a8278d5f624", "photo-1555126634-323283e090fa", "photo-1546069901-ba9599a7e63c",
-    "photo-1559339352-11d035aa65de", "photo-1504674900247-0877df9cc836", "photo-1514326640560-7d063ef2aed5",
-    "photo-1540189549336-e6e99c3679fe", "photo-1484723091739-30a097e8f929", "photo-1476224203421-9ac39bcb3327",
-    "photo-1512058564366-18510be2db19", "photo-1482049016688-2d3e1b311543", "photo-1467003909585-2f8a7270028d",
-    "photo-1532550907401-a500c9a57435", "photo-1565299624946-b28f40a0ae38", "photo-1481931098730-318b6f776db0",
-    "photo-1565958011703-44f9829ba187", "photo-1432139555190-58524dae6a55", "photo-1560684352-8497838a2229",
-    "photo-1529042410759-befb72002f40", "photo-1513639776629-9be61b903114"
+    "photo-1559339352-11d035aa65de", "photo-1504674900247-0877df9cc836", "photo-1514326640560-7d063ef2aed5"
   ],
   "美容・健康": [
     "photo-1600334089648-b0d9d3028eb2", "photo-1540497077202-7c8a3999166f", "photo-1570172619644-dfd03ed5d881",
-    "photo-1519415943484-9fa1873496d4", "photo-1534438327276-14e5300c3a48", "photo-1599058945522-28d584b6f0ff",
-    "photo-1571019614242-c5c5dee9f50b", "photo-1518611012118-696072aa579a", "photo-1581091226825-a6a2a5aee158",
-    "photo-1506126613408-eca07ce68773", "photo-1552693673-1bf958298935", "photo-1515377905703-c4788e51af15",
-    "photo-1512290923902-8a9f81dc236c", "photo-1544367563-12123d8965cd", "photo-1554284126-aa88f22d8b74",
-    "photo-1493836512294-502baa1986e2", "photo-1516549655169-df83a0774514", "photo-1507398941214-572c25f4b1dc",
-    "photo-1591343395082-e201b23831b7", "photo-1574680096141-987702e5c0c1"
+    "photo-1519415943484-9fa1873496d4", "photo-1534438327276-14e5300c3a48", "photo-1599058945522-28d584b6f0ff"
   ],
   "ショッピング": [
     "photo-1441986300917-64674bd600d8", "photo-1472851294608-415522f96317", "photo-1567401893414-76b7b1e5a7a5",
-    "photo-1483985988355-763728e1935b", "photo-1555529771-835f59fc5efe", "photo-1519389950473-47ba0277781c",
-    "photo-1534452203293-494d7ddbf7e0", "photo-1526178613552-2b45c6c302f0", "photo-1445205170230-053b83016050",
-    "photo-1556905055-8f358a7a47b2", "photo-1469334031218-e382a71b716b", "photo-1550009158-9ebf69173e03",
-    "photo-1571781564998-64c39fba0e6f", "photo-1582234388335-9812499d363b", "photo-1481437156560-3205f6a55735",
-    "photo-1567958451986-2de427a4a0be", "photo-1531694611353-d4758f86fa6d", "photo-1576188973526-0e5d7047b0cf"
+    "photo-1483985988355-763728e1935b", "photo-1555529771-835f59fc5efe", "photo-1519389950473-47ba0277781c"
   ],
   "サービス": [
     "photo-1517677208171-0bc679980001", "photo-1521791136064-7985c2717883", "photo-1556761175-5973dc0f32e7",
-    "photo-1581091226825-a6a2a5aee158", "photo-1581578731117-104f2a41272c", "photo-1454165804606-c3d57bc86b40",
-    "photo-1455165814004-1126a7199f9b", "photo-1504328345606-18bbc8c9d7d1", "photo-1524234107056-1c1f48f64ab8",
-    "photo-1516321318423-f06f85e504b3", "photo-1504917595217-d4dc5ebe6122", "photo-1486312338219-ce68d2c6f44d",
-    "photo-1581092160562-40aa08e78837", "photo-1581093458791-9f302e6837b7", "photo-1581094794329-1a09d66270e2",
-    "photo-1507208773393-40d9fc9f4981"
+    "photo-1581091226825-a6a2a5aee158", "photo-1581578731117-104f2a41272c", "photo-1454165804606-c3d57bc86b40"
   ]
 };
 
 // クーポン画像（汎用）
 const COUPON_IMAGES = [
-  "photo-1607082348824-0a96f2a4b9da", "photo-1544161515-4ab6ce6db874", "photo-1556742049-0cfed4f7a07d",
-  "photo-1628191010210-a59de33e5941", "photo-1559523161-0fc0d8b38a7a", "photo-1606851682705-4a572624da6e"
+  "photo-1607082348824-0a96f2a4b9da", "photo-1544161515-4ab6ce6db874", "photo-1556742049-0cfed4f7a07d"
 ];
 
-// 名前生成パーツ（バリエーション追加）
+// 名前生成パーツ
 const NAME_PARTS = {
-  "カフェ": { prefix: ["Cafe", "Coffee", "喫茶", "Lounge", "Bakery", "Espresso", "Tea House", "純喫茶"], body: ["Blue", "Terrace", "Ocean", "Forest", "Mountain", "Sunny", "Dream", "Relax", "Garden", "Street", "Time", "Moments", "Leaf"], suffix: ["", "館", "本店", "ロースタリー", "スタンド", "1985", "北九州"] },
-  "飲食": { prefix: ["レストラン", "居酒屋", "麺屋", "ビストロ", "焼肉", "寿司", "割烹", "炭火焼", "Dining"], body: ["虎の穴", "龍", "さくら", "大和", "イタリアン", "チャイナ", "グルメ", "海鮮", "市場", "湊", "響", "玄界灘"], suffix: ["", "食堂", "飯店", "ダイニング", "酒場", "屋台", "総本店"] },
-  "美容・健康": { prefix: ["Hair", "Salon", "Spa", "Clinic", "Gym", "Yoga", "Body", "Relax"], body: ["Beauty", "Natural", "Life", "Style", "Fit", "Health", "Care", "Refresh", "Glow", "Pure", "Zen", "Flow"], suffix: ["", "サロン", "スタジオ", "整骨院", "クリニック", "Lab"] },
-  "ショッピング": { prefix: ["Select Shop", "Boutique", "雑貨", "スーパー", "Mall", "Gift", "Fashion"], body: ["LUNA", "STAR", "Earth", "Wind", "Daily", "Life", "Style", "Fashon", "Kokura", "Moji", "Port"], suffix: ["", "マート", "商店", "百貨店", "市場"] },
-  "サービス": { prefix: ["Cleaning", "Service", "Rental", "Repair", "School", "Laundry", "Photo"], body: ["Happy", "Quick", "Smart", "Easy", "Safe", "Trust", "Smile", "Clean"], suffix: ["", "本舗", "ステーション", "工房", "館"] }
+  "カフェ": { prefix: ["Cafe", "Coffee", "喫茶", "Lounge", "Bakery"], body: ["Blue", "Terrace", "Ocean", "Forest", "Mountain", "Sunny", "Dream", "Relax", "Garden", "Street"], suffix: ["", "館", "本店", "ロースタリー", "スタンド"] },
+  "飲食": { prefix: ["レストラン", "居酒屋", "麺屋", "ビストロ", "焼肉", "寿司"], body: ["虎の穴", "龍", "さくら", "大和", "イタリアン", "チャイナ", "グルメ", "海鮮", "市場"], suffix: ["", "食堂", "飯店", "ダイニング", "酒場"] },
+  "美容・健康": { prefix: ["Hair", "Salon", "Spa", "Clinic", "Gym", "Yoga"], body: ["Beauty", "Natural", "Life", "Style", "Fit", "Health", "Care", "Refresh", "Glow"], suffix: ["", "サロン", "スタジオ", "整骨院", "クリニック"] },
+  "ショッピング": { prefix: ["Select Shop", "Boutique", "雑貨", "スーパー", "Mall"], body: ["LUNA", "STAR", "Earth", "Wind", "Daily", "Life", "Style", "Fashon"], suffix: ["", "マート", "商店", "百貨店"] },
+  "サービス": { prefix: ["Cleaning", "Service", "Rental", "Repair", "School"], body: ["Happy", "Quick", "Smart", "Easy", "Safe", "Trust"], suffix: ["", "本舗", "ステーション", "工房"] }
 };
 
-// 北九州市の各区（すべての住所を北九州市にする）
-const CITIES = [
-  "北九州市小倉北区", "北九州市小倉南区", "北九州市八幡西区", "北九州市八幡東区", 
-  "北九州市門司区", "北九州市若松区", "北九州市戸畑区"
-];
+const CITIES = ["福岡市博多区", "福岡市中央区", "北九州市小倉北区", "北九州市八幡西区", "東京都港区", "大阪市北区", "名古屋市中区", "札幌市中央区", "仙台市青葉区", "広島市中区"];
 
 // ランダムデータ生成関数
 const generateMockData = (count = 100) => {
   const categories = Object.keys(IMAGE_POOL);
   const data = [];
-  
-  // 各カテゴリーの画像使用状況を追跡して重複を避ける
-  const usedImages: {[key: string]: number} = {};
-  categories.forEach(c => usedImages[c] = 0);
-
-  // カテゴリプールが尽きた場合に備えて、ランダム選択のロジックも用意
-  const getRandomImage = (category: string) => {
-    const pool = IMAGE_POOL[category as keyof typeof IMAGE_POOL];
-    const index = usedImages[category] % pool.length; // 順番に使う
-    usedImages[category]++;
-    return pool[index];
-  };
 
   for (let i = 0; i < count; i++) {
-    // カテゴリをまんべんなく分散させる
-    const category = categories[i % categories.length];
-    
+    const category = categories[Math.floor(Math.random() * categories.length)];
     const nameParts = NAME_PARTS[category as keyof typeof NAME_PARTS];
     const name = `${nameParts.prefix[Math.floor(Math.random() * nameParts.prefix.length)]} ${nameParts.body[Math.floor(Math.random() * nameParts.body.length)]}${nameParts.suffix[Math.floor(Math.random() * nameParts.suffix.length)]}`;
     
-    // 画像URL生成（重複しないように順番に取得）
-    const imageId = getRandomImage(category);
-    // クエリパラメータにsigを追加して、ブラウザキャッシュによる重複表示も防ぐ
+    // 画像URL生成
+    const imageIds = IMAGE_POOL[category as keyof typeof IMAGE_POOL];
+    const imageId = imageIds[Math.floor(Math.random() * imageIds.length)];
     const imageUrl = `https://images.unsplash.com/${imageId}?q=80&w=800&auto=format&fit=crop`;
     
     // クーポン有無（70%の確率でクーポンあり）
     const hasCoupon = Math.random() > 0.3;
-    const couponIndex = Math.floor(Math.random() * COUPON_IMAGES.length);
-    const couponImages = hasCoupon ? [`https://images.unsplash.com/${COUPON_IMAGES[couponIndex]}?q=80&w=800&auto=format&fit=crop`] : [];
+    const couponImages = hasCoupon ? [`https://images.unsplash.com/${COUPON_IMAGES[Math.floor(Math.random() * COUPON_IMAGES.length)]}?q=80&w=800&auto=format&fit=crop`] : [];
     const couponUrls = hasCoupon ? ["#"] : [];
-
-    // 北九州市の住所生成
-    const city = CITIES[Math.floor(Math.random() * CITIES.length)];
-    const block = `${Math.floor(Math.random() * 5) + 1}-${Math.floor(Math.random() * 20) + 1}`;
-    const building = Math.random() > 0.5 ? ` ${["ビル", "マンション", "プラザ"][Math.floor(Math.random() * 3)]}${Math.floor(Math.random() * 5) + 1}F` : "";
 
     data.push({
       id: `mock-${i}`,
       name: name,
       category: category,
-      address: `${city}${block}${building}`,
+      address: `${CITIES[Math.floor(Math.random() * CITIES.length)]} ${Math.floor(Math.random() * 9) + 1}-${Math.floor(Math.random() * 20) + 1}`,
       hours: `${9 + Math.floor(Math.random() * 3)}:00 - ${18 + Math.floor(Math.random() * 5)}:00`,
       holiday: ["年中無休", "水曜日", "日曜日", "不定休"][Math.floor(Math.random() * 4)],
-      phone: `093-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`, // 北九州市外局番 093
+      phone: `090-${Math.floor(Math.random() * 9000) + 1000}-${Math.floor(Math.random() * 9000) + 1000}`,
       website: "https://example.com",
       sns: "https://instagram.com",
       note: hasCoupon ? "★会員限定特典あり！詳細をご確認ください。" : "落ち着いた雰囲気で人気のお店です。",
       images: [imageUrl],
       couponImages: couponImages,
       couponUrls: couponUrls,
-      lat: 33.8 + (Math.random() * 0.1), // 北九州付近の緯度
-      lng: 130.8 + (Math.random() * 0.1) // 北九州付近の経度
+      lat: 35.6 + (Math.random() - 0.5),
+      lng: 139.7 + (Math.random() - 0.5)
     });
   }
-  
-  // リストをシャッフルして、同じカテゴリが連続しないようにする
-  return data.sort(() => Math.random() - 0.5);
+  return data;
 };
 
 // --- テーマ定義 ---
@@ -185,6 +135,7 @@ const ImageCarousel = ({ images, shopName, theme }: { images: string[], shopName
             src={src} 
             onError={(e) => {
               (e.target as HTMLImageElement).style.display='none';
+              // Fallback logic could go here
             }}
             alt={`${shopName} ${i+1}`} 
             className="w-full h-full object-cover flex-shrink-0 snap-center bg-gray-200" 
@@ -236,11 +187,10 @@ const App = () => {
   useEffect(() => {
     // APIコールの代わりにダミーデータを即時生成
     const timer = setTimeout(() => {
-      // 画像プールの合計枚数に合わせてデータを生成（約90件）して重複を回避
-      const data = generateMockData(90); 
+      const data = generateMockData(120); // 120件のデータを生成
       setShops(data);
       setLoading(false);
-    }, 800);
+    }, 800); // ロード中演出のため少し待つ
     return () => clearTimeout(timer);
   }, []);
 
@@ -423,7 +373,7 @@ const App = () => {
                 return (
                   <div key={idx} className="relative overflow-hidden text-center p-6 rounded-2xl shadow-md border-2" 
                        style={{ borderColor: theme.main, background: `linear-gradient(135deg, #fff 0%, ${theme.main}11 100%)` }}>
-                    {/* クーポン風のギザギザ装飾 */}
+                    {/* クーポン風のギザギザ装飾（CSS clip-pathの簡易版としてボーダーで表現） */}
                     <div className="absolute top-0 left-0 w-full h-2 bg-repeat-x" style={{ backgroundImage: `linear-gradient(45deg, ${theme.main} 25%, transparent 25%), linear-gradient(-45deg, ${theme.main} 25%, transparent 25%)`, backgroundSize: '10px 10px' }}></div>
                     
                     <h3 className="text-lg font-bold mb-3 flex items-center justify-center text-gray-800">
@@ -496,7 +446,7 @@ const App = () => {
       {/* ヘッダーエリア */}
       <div className="sticky top-0 z-30 shadow-md text-white rounded-b-[2rem] mb-4 transition-colors duration-500 ease-in-out"
            style={{ backgroundColor: currentTheme.main }}>
-        <div className="px-5 pt-8 pb-3">
+        <div className="px-5 pt-8 pb-3"> {/* ptを増やしてステータスバー余白を意識 */}
           <div className="flex justify-between items-center py-2">
             <div>
               <h1 className="text-xl font-bold tracking-wide flex items-center" style={{ color: currentTheme.text }}>
